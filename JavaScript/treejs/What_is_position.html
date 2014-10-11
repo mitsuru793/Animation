@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>positionはどこを指すのか確かめる</title>
+<style>
+canvas {
+	width: 100%;
+	height: 100%;
+}
+</style>
+</head>
+<body>
+	<script src="js/three.min.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script>
+		var width = 600;
+		var height = 600;
+		// カメラ
+		var fov = 80;
+		var aspect = width / height;
+		var near = 5;
+		var far = 100000;
+
+		var camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+		camera.position.z = 30;
+		camera.position.y = 0;
+
+		// シーン
+		var scene = new THREE.Scene();
+
+		// ライト
+		var light = new THREE.DirectionalLight(0xffffff, 2);
+		light.position.z = 30;
+		light.position.y = 30;
+		light.position.x = 30;
+		light.castShadow = true;
+		scene.add(light);
+
+		// キューブ
+		var cubeGeometry = new THREE.BoxGeometry(10, 10, 10);
+		var cubeMaterial = new THREE.MeshBasicMaterial({
+			color : 0x660000,
+			wireframe : true
+		});
+		var cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+		cubeMesh.position.set(0, 5, 0);
+		scene.add(cubeMesh);
+
+		// 床		
+		var floorGeometry = new THREE.BoxGeometry(10, 0, 10);
+		var floorMaterial = new THREE.MeshBasicMaterial({
+			color : 0xffffff
+		});
+		var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+		floorMesh.position.set(0, 0, 0);
+		scene.add(floorMesh);
+
+		// 空間
+		var worldBoxGeometry = new THREE.BoxGeometry(100000, 100000, 100000);
+		var worldBoxMaterial = new THREE.MeshBasicMaterial({
+			color : 0xaaaaaa,
+			side : THREE.BackSide
+		});
+		var worldBox = new THREE.Mesh(worldBoxGeometry, worldBoxMaterial);
+		scene.add(worldBox);
+
+		var renderer = new THREE.WebGLRenderer();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		document.body.appendChild(renderer.domElement);
+		// カメラをドラッグ
+		var controls = new THREE.OrbitControls(camera, renderer.domElement);
+		// レンダリング
+		function render() {
+			requestAnimationFrame(render);
+			//controls.update();
+			renderer.render(scene, camera);
+		}
+		render();
+	</script>
+</body>
+</html>
