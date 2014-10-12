@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>床下から立方体がやってくる</title>
+<style>
+canvas {
+	width: 100%;
+	height: 100%;
+}
+</style>
+</head>
+<body>
+	<script src="js/three.min.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script>
+		var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+		// カメラの作成
+		var fov = 80;
+		var aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+		var near = 5;
+		var far = 100000;
+
+		var camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+		camera.position.set(90, 60, 160);
+
+		// シーンの作成
+		var scene = new THREE.Scene();
+
+		// ライトの作成
+		var light = new THREE.DirectionalLight(0xffffff, 6);
+		light.position.z = 100;
+		light.position.y = 20;
+		light.position.x = 100;
+		light.castShadow = true;
+		// 影を滑らかにするための処理(ギザギザ対策)
+		light.shadowMapWidth = 2048;
+		light.shadowMapHeight = 2048;
+		scene.add(light);
+
+		// 床の作成
+		var floorGeometry = new THREE.PlaneGeometry(1000, 1000);
+		var floorMaterial = new THREE.MeshLambertMaterial({
+			color : 0xffffff
+		});
+		var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+		floorMesh.position.set(0, 0, 0);
+		floorMesh.rotation.x = -Math.PI / 2;
+		floorMesh.receiveShadow = true;
+		scene.add(floorMesh);
+
+		// 空間の作成
+		var worldBoxGeometry = new THREE.BoxGeometry(100000, 100000, 100000);
+		var worldBoxMaterial = new THREE.MeshBasicMaterial({
+			color : 0xeeeeee,
+			side : THREE.BackSide
+		});
+		var worldBox = new THREE.Mesh(worldBoxGeometry, worldBoxMaterial);
+		scene.add(worldBox);
+
+		// レンダラーの作成
+		var renderer = new THREE.WebGLRenderer({
+			antialias : true
+		});
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.shadowMapEnabled = true;
+		document.body.appendChild(renderer.domElement);
+		// カメラをドラッグ
+		var controls = new THREE.OrbitControls(camera, renderer.domElement);
+		// レンダリング
+		function render() {
+			requestAnimationFrame(render);
+			controls.update();
+			renderer.render(scene, camera);
+		}
+		render();
+
+		// 10 ☓ 10 のマス目を用意
+		// 1:配置済み 0:未配置
+		var mapSide = 10;
+		var map = new Array(mapSide * mapSide);
+		for ( var i = 0; i < map.length; i++) {
+			map[i] = i;
+		}
+		// Fisher–Yates法によりmapの要素をシャッフル
+		for ( var i = map.length - 1; i > 0; i--) {
+			var destIndex = Math.floor(Math.random() * (i + 1));
+			var tmp = map[i];
+			map[i] = map[destIndex];
+			map[destIndex] = tmp;
+		}
+
+		// 立方体の一辺
+		var cubeSide = 10;
+		var cubeSideHalf = cubeSide / 2;
+
+		// 立方体の作成
+		var cubeGeometry = new THREE.BoxGeometry(cubeSide, cubeSide, cubeSide);
+		var cubeMaterial = new THREE.MeshLambertMaterial({
+			color : 0x0000ff
+		});
+		var cubeMesh = new Array(mapSide * mapSide);
+		for ( var i = 0; i < cubeMesh.length; i++) {
+			cubeMesh[i] = new THREE.Mesh(cubeGeometry, cubeMaterial);
+			cubeMesh[i].castShadow = true;
+			cubeMesh[i].receiveShadow = true;
+			// 床から飛び出すメソッドを追加
+			cubeMesh[i].upFromFloor = function() {
+				var _this = this;
+				setTimeout(function main() {
+					_this.position.y;
+					// 床下から全長が飛びし終わったか確認
+					if (_this.position.y < (cubeSide / 2)) {
+						_this.position.y++;
+					}
+					setTimeout(main, 100);
+				}, 0);
+			};
+		}
+		cubeMesh[0].upFromFloor();
+
+		// 配置した立方体の数
+		var numDeployCube = 0;
+		// 立方体を出現させる
+		function cubeSet() {
+			var myTimer = setTimeout(cubeSet, 150);
+			// すべての立方体を配置しているか確認
+			if (numDeployCube < cubeMesh.length) {
+				// これから配置する場所をmapから取り出す
+				var deployNum = map.splice(0, 1)[0];
+				var deployX = deployNum % mapSide * cubeSide;
+				var deployZ = Math.floor(deployNum / mapSide) * cubeSide;
+				cubeMesh[numDeployCube].position.set(deployX, -cubeSide / 2,
+						deployZ);
+				scene.add(cubeMesh[numDeployCube]);
+				cubeMesh[numDeployCube].upFromFloor();
+				numDeployCube++;
+			} else {
+				// setTimeoutのループ終了
+				clearTimeout(myTimer);
+			}
+			renderer.render(scene, camera);
+		}
+		cubeSet();
+	</script>
+</body>
+</html>
